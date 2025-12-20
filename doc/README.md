@@ -12,7 +12,6 @@ Il sistema è strutturato come una sequenza di passaggi controllati, nei quali:
 
 Le schermate mostrate in questo documento corrispondono alle reali finestre operative del programma.
 
-![Step 1](../../screenshots/cd1.png)
 ---
 
 ## 1. Preparazione dell’ambiente e creazione del database
@@ -34,6 +33,16 @@ L’unica operazione rilevante richiesta all’utente è l’inserimento di una 
 La password **non viene memorizzata in chiaro** né salvata all’interno del file: il sistema calcola esclusivamente **l’hash della password**, che viene utilizzato per i controlli successivi.
 
 ---
+![Step 1](../screenshots/cd1.png)
+
+![Step 2](../screenshots/cd2.png)
+
+![Step 3](../screenshots/cd3.png)
+
+![Step 4](../screenshots/cd4.png)
+
+![Step 5](../screenshots/cd5.png)
+
 
 
 ## 2. Prima esecuzione e configurazione delle cartelle
@@ -50,6 +59,7 @@ L’utente deve indicare:
 Questa configurazione viene salvata e riutilizzata nelle esecuzioni successive, evitando ripetizioni.
 
 ---
+![Step 1](../screenshots/pr1.png)
 
 ## 3. Caricamento dei parametri protetti
 
@@ -62,6 +72,9 @@ Questa fase separa:
 Il caricamento corretto dei parametri consente al programma di procedere con le operazioni di cifratura e decifratura.
 
 ---
+![Step 1](../screenshots/pr2.png)
+
+![Step 1](../screenshots/pr3.png)
 
 ## 4. Fase di invio – Cifratura dei dati
 
@@ -80,6 +93,7 @@ Durante questa fase:
 Il risultato è un insieme di dati cifrati pronti per il trasferimento.
 
 ---
+![Step 1](../screenshots/pr4.png)
 
 ## 5. Fase di ricezione – Verifica e decifratura
 
@@ -97,6 +111,7 @@ La decifratura avviene solo se:
 Questo passaggio conclude il ciclo operativo del sistema.
 
 ---
+![Step 1](../screenshots/pr5.png)
 
 ## Conclusione
 

@@ -12,6 +12,7 @@ Il sistema è strutturato come una sequenza di passaggi controllati, nei quali:
 
 Le schermate mostrate in questo documento corrispondono alle reali finestre operative del programma.
 
+![Step 1](../../screenshots/cd1.png)
 ---
 
 ## 1. Preparazione dell’ambiente e creazione del database

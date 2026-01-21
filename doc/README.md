@@ -65,16 +65,18 @@ Questa configurazione viene salvata e riutilizzata nelle esecuzioni successive, 
 
 Dopo la configurazione, il sistema richiede l’inserimento di una **password**, necessaria per caricare i parametri GC57.
 
+![Step 1](../screenshots/pr2.png)
+
 Questa fase separa:
 - l’accesso all’ambiente operativo;
 - dall’effettivo utilizzo del metodo.
 
-Il caricamento corretto dei parametri consente al programma di procedere con le operazioni di cifratura e decifratura.
+Il caricamento corretto dei parametri tramite password consente al programma di procedere con le operazioni di cifratura e decifratura.
 
----
-![Step 1](../screenshots/pr2.png)
 
 ![Step 1](../screenshots/pr3.png)
+
+---
 
 ## 4. Fase di invio – Cifratura dei dati
 
@@ -83,24 +85,29 @@ Nel modulo di invio, l’utente può:
 - selezionare un file allegato;
 - scegliere la codifica;
 - avviare la procedura di cifratura.
+![Step 1](../screenshots/pr4.png)
 
 Durante questa fase:
 - il sistema utilizza il semiprimo selezionato;
 - ne estrae i fattori tramite il metodo GC57;
 - deriva la chiave crittografica;
+-chiede di inserire un seme scelto liberamente e la propria firma
+![Step 1](../screenshots/pr6.png)
 - cifra il contenuto e gli eventuali allegati.
 
 Il risultato è un insieme di dati cifrati pronti per il trasferimento.
 
 ---
-![Step 1](../screenshots/pr4.png)
 
 ## 5. Fase di ricezione – Verifica e decifratura
+![Step 1](../screenshots/pr5.png)
 
 Nel modulo di ricezione, il programma gestisce:
+- richiesta password file segreti;
 - il caricamento dei dati cifrati;
-- la verifica dell’integrità;
-- la decifratura del contenuto;
+- la verifica dell’integrità per attestare un primo controllo umano;
+![Step 1](../screenshots/pr6.png)
+- la decifratura del contenuto, se tutte le porte sono state aperte correttamente;
 - il recupero degli allegati, se presenti.
 
 La decifratura avviene solo se:
@@ -111,7 +118,6 @@ La decifratura avviene solo se:
 Questo passaggio conclude il ciclo operativo del sistema.
 
 ---
-![Step 1](../screenshots/pr5.png)
 
 ## Conclusione
 

@@ -1,3 +1,94 @@
+"""
+GC57-3P – Progetto di sicurezza basato su semiprimi e controllo di fase
+
+Autore: Claudio Govi
+Versione: V0.0.2 (Gennaio 2026)
+Metodo: GC57-3P
+
+------------------------------------------------------------
+DESCRIZIONE GENERALE
+------------------------------------------------------------
+
+GC57-3P è un sistema di sicurezza che utilizza un semiprimo come
+struttura portante per la protezione e l’accesso ai dati, basandosi
+su un principio di offuscamento lineare controllato.
+
+Il semiprimo non viene cifrato né mascherato: viene reso
+informativamente inaccessibile attraverso una traslazione
+congruenziale che dipende da un parametro segreto (C).
+Il segreto non è nascosto, ma trattato come dato irreversibile:
+senza conoscerne il valore esatto non è possibile riallineare
+correttamente il sistema.
+
+Il metodo GC57-3P non ricerca i fattori del semiprimo in modo diretto,
+ma sfrutta un allineamento di fase che consente la loro ricostruzione
+solo all’interno della traiettoria congruenziale corretta.
+
+------------------------------------------------------------
+STRUTTURA A TRE PORTE (3P)
+------------------------------------------------------------
+
+Il sistema è strutturato in tre livelli logici (porte):
+
+PORTA 0 – Semiprimo pubblico
+    Il semiprimo è memorizzato in chiaro nel file.
+    Da solo non consente alcuna apertura senza il corretto riallineamento.
+
+PORTA 1 – Autenticazione operatore
+    Contiene i dati di seme e firma digitale.
+    Questa porta è cifrata utilizzando come chiave
+    il fattore primo più grande del semiprimo (q),
+    scelto intenzionalmente per la sua rarità informativa
+    e per la maggiore difficoltà di intercettazione.
+
+PORTA 2 – Contenuto protetto
+    Contiene il messaggio, eventuali allegati e la chiave k.
+    L’accesso a questa porta è subordinato alla corretta apertura
+    della Porta 1 e alla ricostruzione deterministica di k.
+
+------------------------------------------------------------
+NOTA SULLA SCELTA DI p E q
+------------------------------------------------------------
+
+Nelle prime versioni sperimentali la Porta 1 era associata al fattore
+p (fattore più piccolo del semiprimo). In seguito a un’analisi
+concettuale del modello GC57, questa scelta è stata rivista.
+
+La Porta 1 utilizza ora il fattore q (fattore primo più grande),
+poiché:
+- è informativamente più raro,
+- è meno intercettabile in processi lineari,
+- è più coerente con la filosofia di controllo della fase GC57.
+
+Questa modifica non altera il metodo matematico,
+ma ne rafforza la robustezza logica e la sicurezza operativa.
+
+------------------------------------------------------------
+PRINCIPIO CHIAVE
+------------------------------------------------------------
+
+GC57-3P non basa la propria sicurezza sulla non linearità,
+ma sul controllo della fase iniziale di un processo lineare.
+
+Un dato può essere pubblico e allo stesso tempo irrecuperabile
+se la sua funzione non è nascondere il valore,
+ma fissare l’unica traiettoria congruenziale corretta.
+
+------------------------------------------------------------
+CRONOLOGIA MODIFICHE
+------------------------------------------------------------
+
+- Dicembre 2025:
+  Prima implementazione GC57-3P.
+  Introduzione struttura a tre porte.
+
+- Revisione concettuale:
+  Sostituzione di p con q come chiave della Porta 1
+  per aumentare la robustezza informativa del sistema.
+
+------------------------------------------------------------
+"""
+
 from tkinter import ttk
 import tkinter as tk
 from tkinter import font
@@ -439,6 +530,7 @@ def avvia_cifratura(C, base, esponente, txt_area, entry_codifica):
     semiprimo=carica_semiprimo_random(DatiCondivisi["carica_semiprimi"])
     Sp=semiprimo-C
     p=gcd(Sp,Sp%C)
+    q=Sp//p
     if p!=1:
         pass
     else:
@@ -456,7 +548,7 @@ def avvia_cifratura(C, base, esponente, txt_area, entry_codifica):
             "Attenzione",
             "la verifica di K non è andata a buon fine\nIl processo verrà annullato",
         )
-    chiave_criptazione_prima_porta=p
+    chiave_criptazione_prima_porta=q
     chiave_criptazione_seconda_porta=k
     # ==============================
     # PORTA 1 – cifratura seme + firma con chiave p
@@ -516,64 +608,206 @@ def avvia_cifratura(C, base, esponente, txt_area, entry_codifica):
         f.write(p2)
     messagebox.showinfo("File Criptato","memorizzazione avvenuta con successo")        
 
+
 # ***********************************************************************************
-# ************************* Finestra invia
+# ************************* Finestra invia V0.0.2
 # ***********************************************************************************
 def apri_finestra_invia(C, base, esponente):
     finestra_invia = tk.Toplevel(root)
     finestra_invia.title("GC57 INVIA v2 - Cifratura 3P")
-    finestra_invia.geometry("700x600")
-    finestra_invia.configure(bg="#2d4d4a") 
+    finestra_invia.geometry("750x700")
 
-    # Titolo
+    # Colori moderni
+    colore_sfondo = "#f5f5f5"
+    colore_card = "#ffffff"
+    colore_blu = "#2196F3"
+    colore_verde = "#90EE90"
+    colore_grigio = "#757575"
+    colore_testo_scuro = "#212121"
+    colore_testo_chiaro = "#0E0C0C"
+    colore_bordo = "#e0e0e0"
+
+    finestra_invia.configure(bg=colore_sfondo)
+
+    # Header
+    header = tk.Frame(finestra_invia, bg="white", height=80)
+    header.pack(fill="x")
+    header.pack_propagate(False)
+
     tk.Label(
-        finestra_invia,
+        header,
         text="INVIA DATI CRIPTATI - SICUREZZA GC57-3P",
-        font=("Helvetica", 18, "bold"),
-        bg="#2d4d4a",
-        fg="white",
-        pady=20,
-    ).pack()
+        font=("Segoe UI", 18, "bold"),
+        bg="white",
+        fg=colore_testo_scuro,
+    ).pack(pady=25)
 
-    # Area di testo centrale (Blu)
-    txt_area = tk.Text(
-        finestra_invia, bg="#005f73", fg="white", borderwidth=2, relief="sunken"
+    # Main area
+    main = tk.Frame(finestra_invia, bg=colore_sfondo)
+    main.pack(fill="both", expand=True, padx=30, pady=20)
+
+    # 1. CARD SELEZIONA CODIFICA
+    codifica_card = tk.Frame(
+        main, bg="white", highlightbackground=colore_bordo, highlightthickness=1
     )
-    txt_area.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
+    codifica_card.pack(fill="x", pady=(0, 15))
 
-    # Frame inferiore per pulsanti e input
-    frame_bottom = tk.Frame(finestra_invia, bg="#5ec2b8")
-    frame_bottom.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+    cod_header = tk.Frame(codifica_card, bg="white")
+    cod_header.pack(fill="x", padx=20, pady=(15, 5))
 
-    # Pulsanti a sinistra
-    entry_allegato = tk.Entry(frame_bottom, width=30, bg="#052724", fg="white")
-    entry_allegato.grid(row=0, column=1, padx=10)
+    tk.Label(cod_header, text="💾", font=("Segoe UI", 14), bg="white").pack(
+        side="left", padx=(0, 8)
+    )
 
-    tk.Button(
-        frame_bottom, text="Carica Allegato", font=("Helvetica", 10, "bold"), width=15,
-        command=lambda: apri_file_allegato(entry_allegato)
-    ).grid(row=0, column=0, pady=5, sticky="w")
-
-    entry_codifica = tk.Entry(frame_bottom, width=30, bg="#052724", fg="white")
-    entry_codifica.grid(row=1, column=1, padx=10)
-
-    tk.Button(
-        frame_bottom,
+    tk.Label(
+        cod_header,
         text="Seleziona Codifica",
-        font=("Helvetica", 10, "bold"),
-        width=15,
-        command=lambda: apri_file_semiprimi(entry_codifica)
-    ).grid(row=1, column=0, pady=5, sticky="w")
+        font=("Segoe UI", 12, "bold"),
+        bg="white",
+        fg=colore_testo_scuro,
+    ).pack(side="left")
 
-    # Pulsante Azione a destra
+    cod_row = tk.Frame(codifica_card, bg="white")
+    cod_row.pack(fill="x", padx=20, pady=(5, 15))
+
+    entry_codifica = tk.Entry(
+        cod_row,
+        font=("Segoe UI", 10),
+        bg="#f8f9fa",
+        fg=colore_testo_scuro,
+        relief="flat",
+    )
+    entry_codifica.insert(0, "Seleziona file semiprimi dal database...")
+    entry_codifica.pack(side="left", fill="x", expand=True, padx=(0, 10))
+
     tk.Button(
-        frame_bottom,
+        cod_row,
+        text="Seleziona Codifica",
+        font=("Segoe UI", 10, "bold"),
+        bg=colore_blu,
+        fg="white",
+        cursor="hand2",
+        relief="flat",
+        padx=20,
+        pady=10,
+        command=lambda: apri_file_semiprimi(entry_codifica),
+    ).pack(side="right")
+
+    # 2. CARD MESSAGGIO
+    msg_card = tk.Frame(
+        main,
+        bg="white",
+        highlightbackground=colore_bordo,
+        highlightthickness=1,
+        height=250,
+    )
+    msg_card.pack(fill="x", pady=(0, 15))
+    msg_card.pack_propagate(False)
+
+    msg_header = tk.Frame(msg_card, bg="white")
+    msg_header.pack(fill="x", padx=20, pady=(15, 5))
+
+    tk.Label(msg_header, text="✍️", font=("Segoe UI", 14), bg="white").pack(
+        side="left", padx=(0, 8)
+    )
+
+    tk.Label(
+        msg_header,
+        text="Scrivi il Messaggio",
+        font=("Segoe UI", 12, "bold"),
+        bg="white",
+        fg=colore_testo_scuro,
+    ).pack(side="left")
+
+    text_frame = tk.Frame(msg_card, bg="white")
+    text_frame.pack(fill="both", expand=True, padx=20, pady=(5, 15))
+
+    txt_area = tk.Text(
+        text_frame,
+        font=("Segoe UI", 11),
+        bg="#f8f9fa",
+        fg=colore_testo_scuro,
+        relief="flat",
+        padx=15,
+        pady=15,
+        wrap="word",
+    )
+    txt_area.pack(side="left", fill="both", expand=True)
+
+    scrollbar = ttk.Scrollbar(text_frame, command=txt_area.yview)
+    scrollbar.pack(side="right", fill="y")
+    txt_area.config(yscrollcommand=scrollbar.set)
+
+    # 3. CARD CARICA ALLEGATO
+    allegato_card = tk.Frame(
+        main, bg="white", highlightbackground=colore_bordo, highlightthickness=1
+    )
+    allegato_card.pack(fill="x", pady=(0, 20))
+
+    all_header = tk.Frame(allegato_card, bg="white")
+    all_header.pack(fill="x", padx=20, pady=(15, 5))
+
+    tk.Label(all_header, text="📎", font=("Segoe UI", 14), bg="white").pack(
+        side="left", padx=(0, 8)
+    )
+
+    tk.Label(
+        all_header,
+        text="Carica Allegato",
+        font=("Segoe UI", 12, "bold"),
+        bg="white",
+        fg=colore_testo_scuro,
+    ).pack(side="left")
+
+    all_row = tk.Frame(allegato_card, bg="white")
+    all_row.pack(fill="x", padx=20, pady=(5, 15))
+
+    entry_allegato = tk.Entry(
+        all_row,
+        font=("Segoe UI", 10),
+        bg="#f8f9fa",
+        fg=colore_testo_scuro,
+        relief="flat",
+    )
+    entry_allegato.insert(0, "Nessun allegato selezionato")
+    entry_allegato.pack(side="left", fill="x", expand=True, padx=(0, 10))
+
+    tk.Button(
+        all_row,
+        text="Carica Allegato",
+        font=("Segoe UI", 10, "bold"),
+        bg="#757575",
+        fg="white",
+        cursor="hand2",
+        relief="flat",
+        padx=20,
+        pady=10,
+        command=lambda: apri_file_allegato(entry_allegato),
+    ).pack(side="right")
+
+    # 4. PULSANTE AVVIA CIFRATURA
+    btn_frame = tk.Frame(main, bg=colore_sfondo)
+    btn_frame.pack(fill="x")
+
+    tk.Button(
+        btn_frame,
         text="Avvia Cifratura",
-        bg="#90ee90",
-        font=("Helvetica", 12, "bold"),
-        width=12,
+        font=("Segoe UI", 12, "bold"),
+        bg=colore_verde,
+        fg=colore_testo_scuro,
+        cursor="hand2",
+        relief="flat",
+        padx=40,
+        pady=15,
         command=lambda: avvia_cifratura(C, base, esponente, txt_area, entry_codifica),
-    ).grid(row=0, column=2, rowspan=2, padx=40)
+    ).pack(side="right")
+
+    # Gestione chiusura finestra
+    def chiudi_invio():
+        finestra_invia.destroy()
+        root.deiconify()
+
+    finestra_invia.protocol("WM_DELETE_WINDOW", chiudi_invio)
 
 
 # /**************************/ Separazione invia / ricevi /**************************/
@@ -762,6 +996,7 @@ def lettura_file_criptato(txt_area, entry_allegato):
     # --- fattorizzazione ---
     Sp = semiprimo - C
     p = gcd(Sp, Sp % C)
+    q=Sp//p
     if p == 1:
         messagebox.showerror(
             "Attenzione",
@@ -770,7 +1005,7 @@ def lettura_file_criptato(txt_area, entry_allegato):
         return
 
     # --- apertura prima porta ---
-    dati_porta1 = decifra_porta1(porta1_cifrata=porta1_cifrata, chiave=p)
+    dati_porta1 = decifra_porta1(porta1_cifrata=porta1_cifrata, chiave=q)
 
     seme = dati_porta1["seme"]
     firma = dati_porta1["firma"]
@@ -846,73 +1081,144 @@ def lettura_file_criptato(txt_area, entry_allegato):
 
 
 # ***********************************************************************************
-# ************************* Finestra ricevi
+# ************************* Finestra ricevi V0.0.2
 # ***********************************************************************************
 def apri_finestra_ricevi():
     finestra_ricevi = tk.Toplevel(root)
     finestra_ricevi.title("GC57 RICEVI v2 - Decifratura 3P")
-    finestra_ricevi.geometry("700x600")
-    finestra_ricevi.configure(bg="#261e1a")  # Sfondo quasi nero/marrone scuro
+    finestra_ricevi.geometry("750x600")
 
-    # Titolo
+    # Colori moderni
+    colore_sfondo = "#f5f5f5"
+    colore_card = "#ffffff"
+    colore_verde = "#90EE90"
+    colore_testo_scuro = "#212121"
+    colore_testo_chiaro = "#0E0505"
+    colore_bordo = "#e0e0e0"
+
+    finestra_ricevi.configure(bg=colore_sfondo)
+
+    # Header
+    header = tk.Frame(finestra_ricevi, bg="white", height=80)
+    header.pack(fill="x")
+    header.pack_propagate(False)
+
     tk.Label(
-        finestra_ricevi,
-        text="RICEVI DATI CRIPTATI - VERIFICA INTEGRITA'",
-        font=("Helvetica", 18, "bold"),
-        bg="#261e1a",
-        fg="white",
-        pady=20,
-    ).pack()
+        header,
+        text="RICEVI DATI CRIPTATI - VERIFICA INTEGRITÀ",
+        font=("Segoe UI", 18, "bold"),
+        bg="white",
+        fg=colore_testo_scuro,
+    ).pack(pady=25)
 
-    # Area di testo centrale (Blu)
-    txt_area = tk.Text(
-        finestra_ricevi, bg="#005f73", fg="white", borderwidth=2, relief="sunken"
+    # Main area
+    main = tk.Frame(finestra_ricevi, bg=colore_sfondo)
+    main.pack(fill="both", expand=True, padx=30, pady=20)
+
+    # CARD MESSAGGIO DECIFRATO (con altezza fissa)
+    msg_card = tk.Frame(
+        main,
+        bg="white",
+        highlightbackground=colore_bordo,
+        highlightthickness=1,
+        height=350,
     )
-    txt_area.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
+    msg_card.pack(fill="x", pady=(0, 15))
+    msg_card.pack_propagate(False)  # Blocca l'altezza
 
-    # Frame inferiore
-    frame_bottom = tk.Frame(finestra_ricevi, bg="#261e1a")
-    frame_bottom.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+    msg_header = tk.Frame(msg_card, bg="white")
+    msg_header.pack(fill="x", padx=20, pady=(15, 5))
 
-    # Pulsante principale
-    tk.Button(
-        frame_bottom,
-        text="Carica e Decifra",
-        bg="#90ee90",
-        font=("Helvetica", 12, "bold"),
-        command=lambda: lettura_file_criptato(txt_area, entry_allegato),
-        width=12,
-    ).grid(row=0, column=0, sticky="w", pady=10)
+    tk.Label(msg_header, text="📄", font=("Segoe UI", 14), bg="white").pack(
+        side="left", padx=(0, 8)
+    )
 
-    # Opzioni Radio (File, MAC, Decifratura)
-    frame_radio = tk.Frame(frame_bottom, bg="#261e1a")
-    frame_radio.grid(row=1, column=0, sticky="w")
-    tk.Radiobutton(
-        frame_radio, text="File", bg="#261e1a", fg="white", selectcolor="black"
-    ).pack(side=tk.LEFT)
-    tk.Radiobutton(
-        frame_radio, text="MAC", bg="#261e1a", fg="white", selectcolor="black"
-    ).pack(side=tk.LEFT, padx=10)
-    tk.Radiobutton(
-        frame_radio, text="Decifratura", bg="#261e1a", fg="white", selectcolor="black"
-    ).pack(side=tk.LEFT)
-
-    # Campo Allegato a destra
     tk.Label(
-        frame_bottom,
+        msg_header,
+        text="Messaggio Decifrato",
+        font=("Segoe UI", 12, "bold"),
+        bg="white",
+        fg=colore_testo_scuro,
+    ).pack(side="left")
+
+    # Text area
+    text_frame = tk.Frame(msg_card, bg="white")
+    text_frame.pack(fill="both", expand=True, padx=20, pady=(5, 15))
+
+    txt_area = tk.Text(
+        text_frame,
+        font=("Segoe UI", 11),
+        bg="#f8f9fa",
+        fg=colore_testo_chiaro,
+        relief="flat",
+        padx=15,
+        pady=15,
+        wrap="word",
+    )
+    txt_area.pack(side="left", fill="both", expand=True)
+
+    scrollbar = ttk.Scrollbar(text_frame, command=txt_area.yview)
+    scrollbar.pack(side="right", fill="y")
+    txt_area.config(yscrollcommand=scrollbar.set)
+
+    # Bottom panel (DEVE ESSERE VISIBILE)
+    bottom = tk.Frame(main, bg=colore_sfondo)
+    bottom.pack(fill="x")
+
+    # Card allegato
+    allegato_card = tk.Frame(
+        bottom, bg="white", highlightbackground=colore_bordo, highlightthickness=1
+    )
+    allegato_card.pack(side="left", fill="x", expand=True, padx=(0, 15))
+
+    allegato_inner = tk.Frame(allegato_card, bg="white")
+    allegato_inner.pack(fill="x", padx=20, pady=15)
+
+    tk.Label(
+        allegato_inner,
         text="Allegato",
-        bg="#261e1a",
-        fg="white",
-        font=("Helvetica", 10, "bold"),
-    ).grid(row=0, column=1, sticky="s")
-    entry_allegato = tk.Entry(frame_bottom, width=30, bg="#333333", fg="white")
-    entry_allegato.grid(row=1, column=1, padx=20)
+        font=("Segoe UI", 10, "bold"),
+        bg="white",
+        fg=colore_testo_scuro,
+        width=10,
+        anchor="w",
+    ).pack(side="left")
+
+    entry_allegato = tk.Entry(
+        allegato_inner,
+        font=("Segoe UI", 10),
+        bg="#f8f9fa",
+        fg=colore_testo_chiaro,
+        relief="flat",
+    )
+    entry_allegato.pack(side="left", fill="x", expand=True, padx=(10, 0))
+
+    # Button Carica e Decifra
+    tk.Button(
+        bottom,
+        text="Carica e Decifra",
+        font=("Segoe UI", 12, "bold"),
+        bg=colore_verde,
+        fg=colore_testo_scuro,
+        cursor="hand2",
+        relief="flat",
+        padx=40,
+        pady=15,
+        command=lambda: lettura_file_criptato(txt_area, entry_allegato),
+    ).pack(side="right")
+
+    # Gestione chiusura finestra
+    def chiudi_ricevi():
+        finestra_ricevi.destroy()
+        root.deiconify()
+
+    finestra_ricevi.protocol("WM_DELETE_WINDOW", chiudi_ricevi)
 
 
 if __name__ == "__main__":
 
     # ***********************************************************************************
-    # ************************* Finestra principale
+    # ************************* Finestra principale V0.0.2
     # ***********************************************************************************
 
     root = tk.Tk()
@@ -923,58 +1229,175 @@ if __name__ == "__main__":
 
     root.deiconify()
 
-    colore_fondo_finestra = "#609CD4"
+    # Colori moderni
+    colore_fondo_finestra = "#f5f5f5"
+    colore_card = "#ffffff"
+    colore_verde = "#90EE90"
+    colore_blu = "#2196F3"
+    colore_testo_scuro = "#212121"
+    colore_testo_chiaro = "#757575"
+    colore_bordo = "#e0e0e0"
 
-    root.title("Interfaccia GC57 - Progetto sicurezza Claudio Govi")
-    root.geometry("500x200")
-    root.configure(bg=colore_fondo_finestra) 
+    root.title("GC57-3P Security System")
+    root.geometry("600x400")
+    root.configure(bg=colore_fondo_finestra)
 
-    # Definizione dei font
-    font_titolo = font.Font(family="Helvetica", size=24, weight="bold")
-    font_bottoni = font.Font(family="Helvetica", size=12, weight="normal")
+    # Definizione dei font moderni
+    font_titolo = font.Font(family="Segoe UI", size=28, weight="bold")
+    font_sottotitolo = font.Font(family="Segoe UI", size=10)
+    font_bottoni = font.Font(family="Segoe UI", size=11, weight="bold")
+    font_footer = font.Font(family="Segoe UI", size=9)
 
-    # Scritta grande in alto
+    # Header con titolo
+    frame_header = tk.Frame(root, bg=colore_fondo_finestra)
+    frame_header.pack(fill='x', pady=(30, 10))
+
     label_titolo = tk.Label(
-        root, 
-        text="GC57 3P security", 
-        font=font_titolo, 
-        bg=colore_fondo_finestra, 
-        fg="#333333",
-        pady=40
+        frame_header,
+        text="GC57-3P",
+        font=font_titolo,
+        bg=colore_fondo_finestra,
+        fg=colore_testo_scuro
     )
     label_titolo.pack()
 
-    # Contenitore per i pulsanti (per metterli affiancati)
-    frame_pulsanti = tk.Frame(root, bg=colore_fondo_finestra)
-    frame_pulsanti.pack(expand=True)
+    label_sottotitolo = tk.Label(
+        frame_header,
+        text="Sistema di Sicurezza Basato su Semiprimi",
+        font=font_sottotitolo,
+        bg=colore_fondo_finestra,
+        fg=colore_testo_chiaro
+    )
+    label_sottotitolo.pack()
 
-    # Pulsante Ricezione
+    # Container per le card (invece di frame_pulsanti)
+    container_card = tk.Frame(root, bg=colore_fondo_finestra)
+    container_card.pack(expand=True, fill='both', padx=40, pady=20)
+    
+    container_card.grid_columnconfigure(0, weight=1)
+    container_card.grid_columnconfigure(1, weight=1)
+    container_card.grid_rowconfigure(0, weight=1)
+
+    # Funzioni helper per nascondere/mostrare finestra principale
+    def apri_ricezione_e_nascondi():
+        root.withdraw()
+        apri_finestra_ricevi()
+
+    def apri_invio_e_nascondi():
+        root.withdraw()
+        apri_finestra_invia(C, base, esponente)
+
+    # CARD RICEZIONE (sinistra)
+    # Outer frame per padding
+    outer_ricezione = tk.Frame(container_card, bg=colore_fondo_finestra)
+    outer_ricezione.grid(row=0, column=0, padx=15, pady=10, sticky='nsew')
+
+    # Card con bordo
+    card_ricezione = tk.Frame(
+        outer_ricezione,
+        bg=colore_card,
+        highlightbackground=colore_bordo,
+        highlightthickness=1
+    )
+    card_ricezione.pack(expand=True, fill='both', padx=3, pady=3)
+
+    # Contenuto card
+    content_ricezione = tk.Frame(card_ricezione, bg=colore_card)
+    content_ricezione.pack(expand=True, padx=25, pady=25)
+
+    tk.Label(
+        content_ricezione,
+        text="📥 Ricezione",
+        font=('Segoe UI', 16, 'bold'),
+        bg=colore_card,
+        fg=colore_testo_scuro
+    ).pack(pady=(10, 5))
+
+    tk.Label(
+        content_ricezione,
+        text="Decifra messaggi\ne allegati ricevuti",
+        font=('Segoe UI', 10),
+        bg=colore_card,
+        fg=colore_testo_scuro,
+        justify='center'
+    ).pack(pady=(0, 20))
+
     btn_ricezione = tk.Button(
-        frame_pulsanti, 
-        text="Ricezione", 
-        command=apri_finestra_ricevi,
-        width=15,
-        height=2,
-        bg="#4CAF50", # Verde
-        fg="white",
+        content_ricezione,
+        text="Apri",
+        command=apri_ricezione_e_nascondi,
         font=font_bottoni,
-        relief="flat"
+        bg=colore_verde,
+        fg=colore_testo_scuro,
+        cursor='hand2',
+        relief='flat',
+        bd=0,
+        padx=30,
+        pady=12
     )
-    btn_ricezione.pack(side=tk.LEFT, padx=20)
+    btn_ricezione.pack()
 
-    # Pulsante Invio
-    btn_invio = tk.Button(
-        frame_pulsanti, 
-        text="Invio", 
-        command=lambda: apri_finestra_invia(C, base, esponente),
-        width=15,
-        height=2,
-        bg="#2196F3", # Blu
-        fg="white",
-        font=font_bottoni,
-        relief="flat"
+    # CARD INVIO (destra)
+    # Outer frame per padding
+    outer_invio = tk.Frame(container_card, bg=colore_fondo_finestra)
+    outer_invio.grid(row=0, column=1, padx=15, pady=10, sticky='nsew')
+
+    # Card con bordo
+    card_invio = tk.Frame(
+        outer_invio,
+        bg=colore_card,
+        highlightbackground=colore_bordo,
+        highlightthickness=1
     )
-    btn_invio.pack(side=tk.LEFT, padx=20)
+    card_invio.pack(expand=True, fill='both', padx=3, pady=3)
+
+    # Contenuto card
+    content_invio = tk.Frame(card_invio, bg=colore_card)
+    content_invio.pack(expand=True, padx=25, pady=25)
+
+    tk.Label(
+        content_invio,
+        text="📤 Invio",
+        font=('Segoe UI', 16, 'bold'),
+        bg=colore_card,
+        fg=colore_testo_scuro
+    ).pack(pady=(10, 5))
+
+    tk.Label(
+        content_invio,
+        text="Cifra e proteggi\ni tuoi messaggi",
+        font=('Segoe UI', 10),
+        bg=colore_card,
+        fg=colore_testo_chiaro,
+        justify='center'
+    ).pack(pady=(0, 20))
+
+    btn_invio = tk.Button(
+        content_invio,
+        text="Apri",
+        command=apri_invio_e_nascondi,
+        font=font_bottoni,
+        bg=colore_blu,
+        fg="white",
+        cursor='hand2',
+        relief='flat',
+        bd=0,
+        padx=30,
+        pady=12
+    )
+    btn_invio.pack()
+
+    # Footer
+    frame_footer = tk.Frame(root, bg=colore_fondo_finestra)
+    frame_footer.pack(side='bottom', fill='x', pady=10)
+
+    tk.Label(
+        frame_footer,
+        text="GC57-3P V0.0.1 • Dicembre 2025 • Claudio Govi",
+        font=font_footer,
+        bg=colore_fondo_finestra,
+        fg=colore_testo_chiaro
+    ).pack()
 
     # Avvio del ciclo principale
     root.mainloop()

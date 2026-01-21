@@ -1,3 +1,107 @@
+"""
+============================================================
+GC57-3P – Creazione Database e File Segreto
+============================================================
+
+Nome file:
+    GC573PD_V001.py
+
+Scopo:
+    Questo modulo implementa la fase di creazione dei dati
+    del sistema GC57-3P, generando:
+
+    1) Un database di semiprimi OFFUSCATI (S1),
+       destinati alla memorizzazione e trasmissione pubblica.
+    2) Un file segreto locale, protetto da password,
+       contenente i parametri necessari al riallineamento
+       corretto del sistema (fase).
+
+Il programma NON esegue operazioni di decriptazione dei dati,
+ma prepara l’infrastruttura numerica e logica su cui
+si basa il modello di accesso GC57-3P.
+
+------------------------------------------------------------
+PRINCIPI DI PROGETTO
+------------------------------------------------------------
+
+- L’algoritmo e la procedura sono considerati pubblici
+  (coerenza con il principio di Kerckhoffs).
+
+- La sicurezza NON dipende dall’oscurità del codice,
+  ma dalla conoscenza asimmetrica di alcuni parametri chiave.
+
+- Il semiprimo reale S non viene mai memorizzato né trasmesso
+  in chiaro. Al suo posto viene utilizzato un valore offuscato:
+
+        S1 = S + (B - 1)
+
+  dove (B - 1) NON è un fattore del semiprimo, ma è
+  strutturalmente correlato ad esso.
+
+- In assenza della fase corretta (B - 1, base, esponente),
+  il sistema resta matematicamente coerente ma
+  informativamente sterile.
+
+------------------------------------------------------------
+STRUTTURA DEI FILE GENERATI
+------------------------------------------------------------
+
+1) Database semiprimi offuscati
+   - Contiene solo valori S1
+   - Può essere distribuito pubblicamente
+   - Non consente il recupero diretto di S
+
+2) File segreto cifrato (File_Segreto_GC57.dat)
+   - Contiene:
+        * C = B - 1
+        * Base
+        * Esponente
+   - Protetto da password (NON memorizzata)
+   - Usato esclusivamente per la ricostruzione
+     deterministica della fase corretta
+
+------------------------------------------------------------
+NOTE SULLA SICUREZZA
+------------------------------------------------------------
+
+Questo modulo utilizza una cifratura semplice basata su XOR
+e SHA-256 per la protezione del file segreto.
+
+Tale meccanismo NON è pensato come cifratura crittografica
+standard, ma come protezione locale contro accessi casuali
+o non autorizzati al file di configurazione.
+
+------------------------------------------------------------
+VERSIONING E REVISIONI
+------------------------------------------------------------
+
+v0.1  – Prima implementazione funzionale
+        - Generazione A, B e campo GC57
+        - Creazione semiprimo e test "pagliaio"
+
+v0.2  – Introduzione database offuscato
+        - Memorizzazione S1 = S + (B - 1)
+        - Separazione netta tra dati pubblici e segreti
+
+v0.3  – Revisione concettuale GC57-3P
+        - Centralità della fase (B - 1, base, esponente)
+        - Conferma del ruolo informativamente secondario
+          del fattore p rispetto a q
+
+------------------------------------------------------------
+NOTE FINALI
+------------------------------------------------------------
+
+Questo file è parte integrante di un sistema sperimentale.
+Non pretende di aderire agli standard crittografici correnti,
+ma di esplorare un modello alternativo basato su:
+    - linearità controllata
+    - allineamento di fase
+    - separazione logica delle informazioni
+
+============================================================
+"""
+
 import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
 import secrets
@@ -489,6 +593,16 @@ def test_pagliaio():
         creazione_dati()
     else:
         return  
+    return
+
+    
+    # Simulazione creazione step by step
+    # Step 1: Database
+    root.after(500, lambda: (indicators[0].config(bg="green"), scrivi_log("Database creato.", "successo")))
+    # Step 2: File condivisione
+    root.after(1000, lambda: (indicators[1].config(bg="green"), scrivi_log("File condivisione segreto creato.", "successo")))
+    # Step 3: File pagliaio
+    root.after(1500, lambda: (indicators[2].config(bg="green"), scrivi_log("File estensione pagliaio creato.", "successo")))
 
 
 def salva_log_su_file():

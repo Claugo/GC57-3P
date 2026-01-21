@@ -106,7 +106,7 @@ Nel modulo di ricezione, il programma gestisce:
 - richiesta password file segreti;
 - il caricamento dei dati cifrati;
 - la verifica dell’integrità per attestare un primo controllo umano;
-![Step 1](../screenshots/pr6.png)
+![Step 1](../screenshots/pr7.png)
 - la decifratura del contenuto, se tutte le porte sono state aperte correttamente;
 - il recupero degli allegati, se presenti.
 

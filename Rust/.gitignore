@@ -7,6 +7,7 @@ target/
 *.d
 *.ZIP
 *.7z
+!GC57_sicurezza.7z
 
 # Editor/OS
 .vscode/

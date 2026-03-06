@@ -1,0 +1,19 @@
+# Build Rust
+target/
+
+# Binari/simboli locali
+*.exe
+*.pdb
+*.d
+*.ZIP
+*.7z
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporanei
+*.log
+*.tmp

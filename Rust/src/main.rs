@@ -3,13 +3,11 @@ use std::path::Path;
 use std::time::Instant;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use aes_gcm::aead::{Aead, KeyInit};
-use aes_gcm::{Aes256Gcm, Nonce};
 use aes::Aes256;
 use cbc::{Decryptor, Encryptor};
 use cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use hmac::{Hmac, Mac};
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 use ring::pbkdf2;
 use std::num::NonZeroU32;
 use num_bigint::BigUint;
@@ -21,11 +19,10 @@ use rfd;
 type HmacSha256 = Hmac<Sha256>;
 type AesCbcDec = Decryptor<Aes256>;
 type AesCbcEnc = Encryptor<Aes256>;
-type AesGcmCipher = Aes256Gcm;
 
 const MAGIC_FILE_SEGRETO: &[u8; 4] = b"GC57";
 const MAGIC_FILE_MESSAGGIO: &[u8; 4] = b"GCM7";
-const VERSION_FILE_MESSAGGIO: u8 = 0x02;
+const VERSION_FILE_MESSAGGIO: u8 = 0x01;
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -186,7 +183,7 @@ fn decifera_file_segreto(
     let chiave_aes = deriva_chiave_aes_256(password, config);
 
     // 7. Verifica HMAC (integrità)
-    let mut hmac = <HmacSha256 as Mac>::new_from_slice(&chiave_aes)
+    let mut hmac = HmacSha256::new_from_slice(&chiave_aes)
         .map_err(|e| format!("Errore HMAC: {}", e))?;
     hmac.update(iv);
     hmac.update(ciphertext);
@@ -331,9 +328,9 @@ struct DatiCriptazione {
 #[derive(Clone, Debug)]
 struct FileMessaggioCriptato {
     s1: BigUint,
-    nonce_q: [u8; 12],
+    iv_q: [u8; 16],
     blob_q: Vec<u8>,
-    nonce_k: [u8; 12],
+    iv_k: [u8; 16],
     blob_k: Vec<u8>,
 }
 
@@ -1100,58 +1097,6 @@ fn decifra_aes256_cbc(chiave: &[u8; 32], iv: &[u8; 16], ciphertext: &[u8]) -> Re
     Ok(payload.to_vec())
 }
 
-fn cifra_aes256_gcm(chiave: &[u8; 32], plaintext: &[u8]) -> Result<([u8; 12], Vec<u8>), String> {
-    let mut nonce = [0u8; 12];
-    rand::thread_rng().fill_bytes(&mut nonce);
-
-    let cipher = AesGcmCipher::new_from_slice(chiave)
-        .map_err(|e| format!("❌ Errore inizializzazione AES-GCM: {}", e))?;
-
-    let ciphertext = cipher
-        .encrypt(Nonce::from_slice(&nonce), plaintext)
-        .map_err(|_| "❌ Errore cifratura AES-GCM".to_string())?;
-
-    Ok((nonce, ciphertext))
-}
-
-fn decifra_aes256_gcm(chiave: &[u8; 32], nonce: &[u8; 12], ciphertext: &[u8]) -> Result<Vec<u8>, String> {
-    let cipher = AesGcmCipher::new_from_slice(chiave)
-        .map_err(|e| format!("❌ Errore inizializzazione AES-GCM: {}", e))?;
-
-    cipher
-        .decrypt(Nonce::from_slice(nonce), ciphertext)
-        .map_err(|_| "❌ Errore decifratura AES-GCM (tag non valido o dati manomessi)".to_string())
-}
-
-fn calcola_hash_sha256(data: &[u8]) -> Vec<u8> {
-    let mut hasher = Sha256::new();
-    hasher.update(data);
-    hasher.finalize().to_vec()
-}
-
-fn sanitizza_nome_allegato(nome: &str) -> Result<String, String> {
-    let nome = nome.trim();
-    if nome.is_empty() {
-        return Err("❌ Nome allegato vuoto".to_string());
-    }
-
-    let path = Path::new(nome);
-    if path.components().count() != 1 {
-        return Err("❌ Nome allegato non valido (path traversal bloccato)".to_string());
-    }
-
-    let base = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .ok_or("❌ Nome allegato non valido".to_string())?;
-
-    if base == "." || base == ".." {
-        return Err("❌ Nome allegato non valido".to_string());
-    }
-
-    Ok(base.to_string())
-}
-
 fn leggi_len_prefixed(payload: &[u8], offset: &mut usize) -> Result<Vec<u8>, String> {
     if payload.len() < *offset + 4 {
         return Err("❌ Payload corrotto: lunghezza campo mancante".to_string());
@@ -1204,22 +1149,22 @@ fn parse_file_messaggio_criptato(dati: &[u8]) -> Result<FileMessaggioCriptato, S
     let s1_bytes = Self::leggi_len_prefixed(dati, &mut offset)?;
     let s1 = BigUint::from_bytes_be(&s1_bytes);
 
-    if dati.len() < offset + 12 {
-        return Err("❌ File corrotto: nonce prima porta mancante".to_string());
+    if dati.len() < offset + 16 {
+        return Err("❌ File corrotto: IV prima porta mancante".to_string());
     }
-    let nonce_q: [u8; 12] = dati[offset..offset + 12]
+    let iv_q: [u8; 16] = dati[offset..offset + 16]
         .try_into()
-        .map_err(|_| "❌ File corrotto: nonce prima porta non valido".to_string())?;
-    offset += 12;
+        .map_err(|_| "❌ File corrotto: IV prima porta non valido".to_string())?;
+    offset += 16;
     let blob_q = Self::leggi_len_prefixed(dati, &mut offset)?;
 
-    if dati.len() < offset + 12 {
-        return Err("❌ File corrotto: nonce seconda porta mancante".to_string());
+    if dati.len() < offset + 16 {
+        return Err("❌ File corrotto: IV seconda porta mancante".to_string());
     }
-    let nonce_k: [u8; 12] = dati[offset..offset + 12]
+    let iv_k: [u8; 16] = dati[offset..offset + 16]
         .try_into()
-        .map_err(|_| "❌ File corrotto: nonce seconda porta non valido".to_string())?;
-    offset += 12;
+        .map_err(|_| "❌ File corrotto: IV seconda porta non valido".to_string())?;
+    offset += 16;
     let blob_k = Self::leggi_len_prefixed(dati, &mut offset)?;
 
     if offset != dati.len() {
@@ -1228,9 +1173,9 @@ fn parse_file_messaggio_criptato(dati: &[u8]) -> Result<FileMessaggioCriptato, S
 
     Ok(FileMessaggioCriptato {
         s1,
-        nonce_q,
+        iv_q,
         blob_q,
-        nonce_k,
+        iv_k,
         blob_k,
     })
 }
@@ -1306,22 +1251,15 @@ fn costruisci_file_criptato(
     };
 
     let payload_q = Self::serializza_campi(&[seed_bytes, codice_utente_bytes])?;
-    let hash_allegato = if bytes_allegato.is_empty() {
-        Vec::new()
-    } else {
-        Self::calcola_hash_sha256(&bytes_allegato)
-    };
-
     let payload_k = Self::serializza_campi(&[
         k_bytes.as_slice(),
         messaggio_bytes,
         nome_allegato.as_slice(),
-        hash_allegato.as_slice(),
         bytes_allegato.as_slice(),
     ])?;
 
-    let (nonce_q, blob_q) = Self::cifra_aes256_gcm(&dati_criptazione.chiave_q, &payload_q)?;
-    let (nonce_k, blob_k) = Self::cifra_aes256_gcm(&dati_criptazione.chiave_k, &payload_k)?;
+    let (iv_q, blob_q) = Self::cifra_aes256_cbc(&dati_criptazione.chiave_q, &payload_q)?;
+    let (iv_k, blob_k) = Self::cifra_aes256_cbc(&dati_criptazione.chiave_k, &payload_k)?;
 
     let mut out = Vec::new();
     out.extend_from_slice(MAGIC_FILE_MESSAGGIO);
@@ -1330,10 +1268,10 @@ fn costruisci_file_criptato(
     let s1_bytes = s1.to_bytes_be();
     Self::append_len_prefixed(&mut out, &s1_bytes)?;
 
-    out.extend_from_slice(&nonce_q);
+    out.extend_from_slice(&iv_q);
     Self::append_len_prefixed(&mut out, &blob_q)?;
 
-    out.extend_from_slice(&nonce_k);
+    out.extend_from_slice(&iv_k);
     Self::append_len_prefixed(&mut out, &blob_k)?;
 
     Ok(out)
@@ -1372,12 +1310,8 @@ fn genera_chiavi_aes(&mut self, s1: BigUint) -> Result<(), String> {
     let b = dati.b.clone();
     let e = dati.e;
 
-    // S = S1 - c
-    let s = if s1 > c {
-        s1.clone() - c.clone()
-    } else {
-        return Err("❌ S1 deve essere maggiore di c".to_string());
-    };
+    // S = S1
+    let s = s1.clone();
 
     // p = gcd(S, S mod c)
     let s_mod_c = s.clone() % c.clone();
@@ -1543,7 +1477,7 @@ fn decripta_messaggio(&mut self) {
     }
 
     // Prima porta: S = S1 - c, p = gcd(S, S mod c), q = S // p
-    let s = file_criptato.s1.clone() - c.clone();
+    let s = file_criptato.s1.clone();
     let s_mod_c = s.clone() % c.clone();
     let p = Self::gcd(s.clone(), s_mod_c);
     if p <= BigUint::from(1u8) {
@@ -1553,7 +1487,7 @@ fn decripta_messaggio(&mut self) {
     let q = s.clone() / p.clone();
 
     let chiave_q = Self::deriva_chiave_aes_da_biguint(&q);
-    let payload_q = match Self::decifra_aes256_gcm(&chiave_q, &file_criptato.nonce_q, &file_criptato.blob_q) {
+    let payload_q = match Self::decifra_aes256_cbc(&chiave_q, &file_criptato.iv_q, &file_criptato.blob_q) {
         Ok(pq) => pq,
         Err(e) => {
             self.messaggio_errore = format!("{} (prima porta)", e);
@@ -1635,7 +1569,7 @@ fn decripta_messaggio(&mut self) {
     }
 
     let chiave_k = Self::deriva_chiave_aes_da_biguint(&k);
-    let payload_k = match Self::decifra_aes256_gcm(&chiave_k, &file_criptato.nonce_k, &file_criptato.blob_k) {
+    let payload_k = match Self::decifra_aes256_cbc(&chiave_k, &file_criptato.iv_k, &file_criptato.blob_k) {
         Ok(pk) => pk,
         Err(e) => {
             self.messaggio_errore = format!("{} (seconda porta)", e);
@@ -1651,8 +1585,8 @@ fn decripta_messaggio(&mut self) {
         }
     };
 
-    if campi_k.len() != 5 {
-        self.messaggio_errore = "❌ Seconda porta non valida: attesi k, messaggio, nome allegato, hash allegato e contenuto".to_string();
+    if campi_k.len() != 4 {
+        self.messaggio_errore = "❌ Seconda porta non valida: attesi k, messaggio, nome allegato e contenuto".to_string();
         return;
     }
 
@@ -1671,33 +1605,13 @@ fn decripta_messaggio(&mut self) {
         }
     };
     let nome_allegato = String::from_utf8(campi_k[2].clone()).unwrap_or_default();
-    let hash_allegato_atteso = campi_k[3].clone();
-    let contenuto_allegato = campi_k[4].clone();
+    let contenuto_allegato = campi_k[3].clone();
 
     self.messaggio = messaggio_decifrato;
     self.allegati_selezionati.clear();
 
     if !nome_allegato.trim().is_empty() && !contenuto_allegato.is_empty() {
-        if hash_allegato_atteso.is_empty() {
-            self.messaggio_errore = "❌ Hash allegato mancante: possibile manomissione".to_string();
-            return;
-        }
-
-        let hash_calcolato = Self::calcola_hash_sha256(&contenuto_allegato);
-        if hash_calcolato != hash_allegato_atteso {
-            self.messaggio_errore = "❌ Allarme integrita: hash allegato non corrispondente".to_string();
-            return;
-        }
-
-        let nome_sicuro = match Self::sanitizza_nome_allegato(&nome_allegato) {
-            Ok(n) => n,
-            Err(e) => {
-                self.messaggio_errore = e;
-                return;
-            }
-        };
-
-        let percorso_allegato = std::path::PathBuf::from(&cfg.cartelle.allegati).join(&nome_sicuro);
+        let percorso_allegato = std::path::PathBuf::from(&cfg.cartelle.allegati).join(&nome_allegato);
         match fs::write(&percorso_allegato, &contenuto_allegato) {
             Ok(_) => {
                 self.messaggio_errore = format!(
@@ -1713,10 +1627,6 @@ fn decripta_messaggio(&mut self) {
             }
         }
     } else {
-        if !hash_allegato_atteso.is_empty() {
-            self.messaggio_errore = "❌ Metadati allegato incoerenti: hash presente senza allegato".to_string();
-            return;
-        }
         self.messaggio_errore = "✓ Messaggio decriptato con successo!".to_string();
     }
 }

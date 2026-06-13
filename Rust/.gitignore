@@ -2,7 +2,6 @@
 target/
 
 # Binari/simboli locali
-*.exe
 *.pdb
 *.d
 
